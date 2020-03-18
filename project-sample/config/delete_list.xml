@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<List>
+
+  <!-- List of directories to be deleted -->
+  <Dirs>
+  
+    <!--
+    <Dir>
+      <path>tomcat/temp</path>
+    </Dir>
+    -->
+
+  </Dirs>
+
+  <!-- List of files to be deleted -->
+  <Files>
+  
+    <File>
+      <path>promptuser.sh</path>
+    </File>
+  
+    <File>
+      <path>pentaho-solutions/system/default-content/plugin-samples.zip</path>
+    </File>
+  
+    <File>
+      <path>pentaho-solutions/system/default-content/samples.zip</path>
+    </File>
+    
+  </Files>
+
+</List>
