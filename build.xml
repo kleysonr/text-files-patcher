@@ -1,0 +1,217 @@
+<!--
+	This build file is inspired on Community Build Framework from Webdetails.
+	Created by Pedro Alves (pedro.alves@webdetails.pt)
+-->	
+
+<!-- ======================================================================
+description: main build file for patching template files  . .                                                    
+======================================================================= -->
+<project name="project-build" default="all" >
+
+	<description>Project patching build helper.</description>
+
+	<!-- Define the base folder for all the project's definitions. -->
+	<fail message="FATAL: 'projectDefs' property not set. Please provide it the ant command, eg: ant -DprojectDefs=/app/projectDefs -Denv=dev" unless="projectDefs"/>
+
+	<!-- Load some dependencies -->
+	<property name="ant-contrib.jar" location="lib/ant-contrib-0.6.jar"/>
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="${ant-contrib.jar}"/>
+
+	<!-- Set the config.properties for the given environment. -->
+	<condition property="config.properties" value="build-${env}.properties" else="build.properties">
+		<isset property="env"/>
+	</condition>
+
+	<!-- Set the full path for both default and specific project config.properties files. -->
+	<property name="config.properties.path" value="${projectDefs}/config/${config.properties}"/>
+	<property name="config.properties.default.path" value="${projectDefs}/config/build.properties"/>
+	
+	<property name="root.path" location="." relative="false"/>
+
+	<property file="${config.properties.path}"/>
+	<property file="${config.properties.default.path}"/>
+
+	<property name="build.logpath" location="${root.path}/logs/${env}.log"/>
+	<record name="${build.logpath}"/>
+
+	<tstamp>
+    	<format property="current.time" pattern="dd/MM/yyyy HH:mm:ss.SSS" />
+	</tstamp>
+	
+	<target name="all" description="Apply the patches." depends="apply-patch">
+		<echo>Finished.</echo>
+	</target>
+	
+	<target name="about">
+		<echo>--------------------------------------------------------------</echo>
+		<echo>--------------------------------------------------------------</echo>
+		<echo>------              Text Files Patcher                 -------</echo>
+		<echo>------                 Version: 0.1                    -------</echo>
+		<echo>------                 Kleyson Rios                    -------</echo>
+		<echo>--------------------------------------------------------------</echo>
+		<echo>--------------------------------------------------------------</echo>
+		<echo></echo>
+		<echo>                         SETTINGS:                            </echo>
+		<echo></echo>
+		<echo>   Project Defs Folder: ${projectDefs}</echo>
+		<echo>   Env Config File    : ${config.properties.path}</echo>
+		<echo>   Default Config File: ${config.properties.default.path}</echo>
+		<echo> </echo>
+		<echo>   OS Name:		${os.name}</echo>
+		<echo>   OS Version:	${os.version}</echo>
+		<echo>   OS Arch:		${os.arch}</echo>
+		<echo>--------------------------------------------------------------</echo>
+		<echo>--------------------------------------------------------------</echo>
+	</target>
+
+	<target name="init" depends="">
+		<!-- Convert decrypted vaulted files to properties files. -->
+		<echo>Converting .yml files to .properties files.</echo>
+
+		<foreach target="ymlConverter" param="ymlFile">
+            <path>                                                                                                
+                <fileset dir="${projectDefs}/config" includes="*.yml"/>                 
+            </path>                                                                         
+		</foreach>
+
+		<!-- Check if the env's config.properties exists. -->	
+		<available file="${config.properties.path}" type="file" property="config.properties.exists"/>
+		<fail message="FATAL: Configuration file not found at ${config.properties.path}" unless="config.properties.exists"/>
+	</target>
+
+	<target name="apply-patch" depends="init,about" description="Apply the patches">
+
+		<echo>Building project - ${current.time}</echo>
+
+		<!-- Delete list of directories and files before apply patches. -->
+		<antcall target="delete-dirs-files"/>
+		
+		<echo></echo>
+		<echo>Applying general patches.</echo>
+
+		<!-- Copy files to be patched. -->
+		<copy todir="${source.dir}" failonerror="true" verbose="false" overwrite="true" filtering="true">
+			<fileset dir="${projectDefs}/patches/">
+				<include name="**/*.java"/>
+				<include name="**/*.xml"/>
+				<include name="**/*.conf"/>
+				<include name="**/*.txt"/>
+				<include name="**/*.ktr"/>
+				<include name="**/*.kjb"/>
+				<include name="**/*.js"/>
+				<include name="**/*.properties"/>
+				<include name="**/*.sh"/>
+				<include name="**/*.bat"/>
+				<include name="**/*.pl"/>
+			</fileset>
+			<filterset>
+				<!-- Unlike properties, filters are overwritten, so we invert the order of the files -->
+				<filtersfile file="${config.properties.default.path}"/>
+				<filtersfile file="${config.properties.path}"/>
+			</filterset>
+		</copy>
+
+		<!-- Copy files to not be patched. -->
+		<copy todir="${source.dir}" failonerror="true" verbose="false" overwrite="true">
+			<fileset dir="${projectDefs}/patches/">
+				<exclude name="**/*.java"/>
+				<exclude name="**/*.xml"/>
+				<exclude name="**/*.conf"/>
+				<exclude name="**/*.txt"/>
+				<exclude name="**/*.ktr"/>
+				<exclude name="**/*.kjb"/>
+				<exclude name="**/*.js"/>
+				<exclude name="**/*.properties"/>
+				<exclude name="**/*.sh"/>
+				<exclude name="**/*.bat"/>
+				<exclude name="**/*.pl"/>
+			</fileset>
+		</copy>
+
+		<echo>Applying private-patches for `${env}`.</echo>
+
+		<!-- Copy files to be patched. -->
+		<copy todir="${source.dir}" failonerror="false" verbose="false" overwrite="true" filtering="true">
+			<fileset dir="${projectDefs}/patches-private/${env}/">
+				<include name="**/*.java"/>
+				<include name="**/*.xml"/>
+				<include name="**/*.conf"/>
+				<include name="**/*.txt"/>
+				<include name="**/*.ktr"/>
+				<include name="**/*.kjb"/>
+				<include name="**/*.js"/>
+				<include name="**/*.properties"/>
+				<include name="**/*.sh"/>
+				<include name="**/*.bat"/>
+				<include name="**/*.pl"/>
+			</fileset>
+			<filterset>
+				<!-- Unlike properties, filters are overwritten, so we invert the order of the files -->
+				<filtersfile file="${config.properties.default.path}"/>
+				<filtersfile file="${config.properties.path}"/>
+			</filterset>
+		</copy>
+
+		<!-- Copy files to not be patched. -->
+		<copy todir="${source.dir}" failonerror="false" verbose="false" overwrite="true">
+			<fileset dir="${projectDefs}/patches-private/${env}/">
+				<exclude name="**/*.java"/>
+				<exclude name="**/*.xml"/>
+				<exclude name="**/*.conf"/>
+				<exclude name="**/*.txt"/>
+				<exclude name="**/*.ktr"/>
+				<exclude name="**/*.kjb"/>
+				<exclude name="**/*.js"/>
+				<exclude name="**/*.properties"/>
+				<exclude name="**/*.sh"/>
+				<exclude name="**/*.bat"/>
+				<exclude name="**/*.pl"/>
+			</fileset>
+		</copy>
+
+		<!-- Make scripts executables. -->
+		<chmod dir="${source.dir}" perm="u+x">
+			<include name="**/*.sh"/>
+			<include name="**/*.pl"/>
+		</chmod>
+
+	</target>
+	
+	<!-- Delete list of selected directories and files. -->
+	<target name="delete-dirs-files">
+		<available file="${projectDefs}/config/delete_list.xml" type="file" property="delete_list.exists"/>
+		<fail message="FATAL: ${projectDefs}/config/delete_list.xml file not found." unless="delete_list.exists"/>
+		<xmlproperty file="${projectDefs}/config/delete_list.xml" collapseAttributes="true"/>
+
+		<echo>Starting Deleting Directories / Files</echo>
+		<foreach list="${List.Dirs.Dir.path}" target="delete-dirs" param="var" delimiter=","/>
+		<foreach list="${List.Files.File.path}" target="delete-files" param="var" delimiter=","/>
+	</target>
+
+	<target name="delete-dirs">
+		<echo>Deleting Directories</echo>
+		<delete dir="${source.dir}/${var}" />
+	</target>
+
+	<target name="delete-files">
+		<echo>Deleting Files</echo>
+		<delete file="${source.dir}/${var}" />
+	</target>
+
+	<!-- yml converter -->
+	<target name="ymlConverter">
+		<echo>Converting ${ymlFile}</echo>
+		<exec executable="sed">
+			<arg value="-ie" />
+			<arg value="s/:[^:\/\/]/=/g;s/ *=/=/g" />
+			<arg value="${ymlFile}" />
+		</exec>
+
+		<echo>Renaming ${ymlFile}</echo>
+		<exec executable="/bin/sh">
+			<arg value="-c" />
+			<arg value="/bin/mv ${ymlFile} $(echo ${ymlFile} | sed -e 's/\.yml$/\.properties/')" />
+		</exec>
+	</target>	
+
+</project>
